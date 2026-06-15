@@ -1,10 +1,10 @@
-html:Fruit Ninja - Premium Edition:fruit_ninja.html
+html:Fruit Ninja - Balanced Edition:fruit_ninja_balanced.html
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fruit Ninja - Premium Edition</title>
+    <title>Fruit Ninja - Balanced Edition</title>
     <style>
         body {
             margin: 0;
@@ -61,15 +61,9 @@ html:Fruit Ninja - Premium Edition:fruit_ninja.html
             align-items: center;
             gap: 6px;
         }
-        #levelBadge {
-            color: #ffeb3b;
-        }
-        #score {
-            color: #4caf50;
-        }
-        #lives {
-            color: #f44336;
-        }
+        #levelBadge { color: #ffeb3b; }
+        #score { color: #4caf50; }
+        #lives { color: #f44336; }
     </style>
 </head>
 <body>
@@ -98,10 +92,10 @@ let particles = [];
 let slashTrail = [];
 
 let currentLevel = 1;
-let speedMultiplier = 1.0; 
-let spawnChance = 0.035; 
+let speedMultiplier = 0.75; // Deutlich langsamerer Start!
+let spawnChance = 0.015;     // Sehr ruhiger Start, Früchte kommen einzeln
+let maxObjectsOnScreen = 2;  // Am Anfang maximal 2 Objekte gleichzeitig
 
-// Koordinaten für den virtuellen "Erneut spielen"-Button auf dem Canvas
 const buttonX = 400;
 const buttonY = 380;
 const buttonW = 240;
@@ -116,13 +110,10 @@ const fruitTypes = [
     { emoji: '💣', size: 80 }
 ];
 
-// Zeichnet den originalen Yin-Yang Holzhintergrund direkt per Code
 function drawWoodBackground() {
-    // 1. Warme Holzfarbe als Basis
     ctx.fillStyle = '#5c3a21';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Feine Holzmaserung zeichnen
     ctx.fillStyle = '#4a2e1a';
     for(let i = 0; i < canvas.width; i += 40) {
         if(Math.sin(i) > 0) {
@@ -130,74 +121,60 @@ function drawWoodBackground() {
         }
     }
 
-    // 2. Großes Yin-Yang-Symbol in der Mitte
     let centerX = canvas.width / 2;
     let centerY = canvas.height / 2;
     let r = 160;
 
     ctx.save();
-    // Dunkle Rille für plastischen Effekt
     ctx.beginPath();
     ctx.arc(centerX, centerY, r + 4, 0, Math.PI * 2);
     ctx.fillStyle = '#321b0f';
     ctx.fill();
 
-    // Rechter Halbkreis (Dunkles Holz)
     ctx.beginPath();
     ctx.arc(centerX, centerY, r, -Math.PI/2, Math.PI/2, false);
     ctx.fillStyle = '#442816';
     ctx.fill();
 
-    // Linker Halbkreis (Helles Holz)
     ctx.beginPath();
     ctx.arc(centerX, centerY, r, Math.PI/2, -Math.PI/2, false);
     ctx.fillStyle = '#734929';
     ctx.fill();
 
-    // Unterer Bogen (Dunkel)
     ctx.beginPath();
     ctx.arc(centerX, centerY + r/2, r/2, 0, Math.PI * 2);
     ctx.fillStyle = '#442816';
     ctx.fill();
 
-    // Oberer Bogen (Hell)
     ctx.beginPath();
     ctx.arc(centerX, centerY - r/2, r/2, 0, Math.PI * 2);
     ctx.fillStyle = '#734929';
     ctx.fill();
 
-    // Heller Punkt im dunklen Bogen
     ctx.beginPath();
     ctx.arc(centerX, centerY + r/2, 22, 0, Math.PI * 2);
     ctx.fillStyle = '#734929';
     ctx.fill();
 
-    // Dunkler Punkt im hellen Bogen
     ctx.beginPath();
     ctx.arc(centerX, centerY - r/2, 22, 0, Math.PI * 2);
     ctx.fillStyle = '#442816';
     ctx.fill();
 
-    // Äußerer oktogonaler Rahmen (Klassischer Look!)
     ctx.restore();
     ctx.strokeStyle = '#321b0f';
     ctx.lineWidth = 8;
     ctx.beginPath();
-    ctx.moveTo(80, 50); 
-    ctx.lineTo(720, 50); 
-    ctx.lineTo(750, 120); 
-    ctx.lineTo(750, 480);
-    ctx.lineTo(720, 550); 
-    ctx.lineTo(80, 550); 
-    ctx.lineTo(50, 480); 
-    ctx.lineTo(50, 120);
+    ctx.moveTo(80, 50); ctx.lineTo(720, 50); ctx.lineTo(750, 120); ctx.lineTo(750, 480);
+    ctx.lineTo(720, 550); ctx.lineTo(80, 550); ctx.lineTo(50, 480); ctx.lineTo(50, 120);
     ctx.closePath();
     ctx.stroke();
 }
 
 class GameObject {
     constructor() {
-        this.x = Math.random() * (canvas.width - 240) + 120;
+        // Früchte starten zentrierter, damit sie weniger zur Seite fliegen
+        this.x = Math.random() * (canvas.width - 360) + 180;
         this.y = canvas.height + 70;
         
         const target = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
@@ -205,14 +182,15 @@ class GameObject {
         this.radius = target.size / 2;
         this.isBomb = (this.emoji === '💣');
 
-        // Seitengeschwindigkeit und Flughöhe an Level anpassen
-        this.speedX = (Math.random() - 0.5) * 5 * (1 + (speedMultiplier - 1) * 0.25);
-        this.speedY = -(Math.random() * 3 + 15) * Math.sqrt(speedMultiplier); 
-        this.gravity = 0.22 * speedMultiplier; 
+        // Weniger Drang nach links/rechts zu fliegen
+        this.speedX = (Math.random() - 0.5) * 3.5 * speedMultiplier;
+        // Sanfterer Bogen nach oben am Anfang
+        this.speedY = -(Math.random() * 3 + 13.5) * Math.sqrt(speedMultiplier); 
+        this.gravity = 0.20 * speedMultiplier; 
         
         this.sliced = false;
         this.rotation = Math.random() * Math.PI;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.06 * speedMultiplier;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.04 * speedMultiplier;
     }
 
     update() {
@@ -234,29 +212,27 @@ class GameObject {
     }
 }
 
-// Edle, metallisch glänzende Partikel (Chrom-Effekt)
 class MetalParticle {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.radius = Math.random() * 6 + 3;
-        this.speedX = (Math.random() - 0.5) * 16;
-        this.speedY = (Math.random() - 0.5) * 16;
+        this.radius = Math.random() * 5 + 2.5;
+        this.speedX = (Math.random() - 0.5) * 14;
+        this.speedY = (Math.random() - 0.5) * 14;
         this.alpha = 1;
-        // Funkelnder Silber/Weiß Verlauf-Look
         this.color = Math.random() > 0.4 ? '#e8e8e8' : '#ffffff';
     }
 
     update() {
         this.x += this.speedX;
         this.y += this.speedY;
-        this.alpha -= 0.028;
+        this.alpha -= 0.03;
     }
 
     draw() {
         ctx.save();
         ctx.globalAlpha = this.alpha;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 8;
         ctx.shadowColor = '#ffffff';
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
@@ -267,19 +243,20 @@ class MetalParticle {
 }
 
 function checkDifficulty() {
-    // Level erhöht sich alle 100 Punkte
-    let calculatedLevel = Math.floor(score / 100) + 1;
+    let calculatedLevel = Math.floor(score / 80) + 1; // Level steigt alle 80 Punkte
     if (calculatedLevel !== currentLevel) {
         currentLevel = calculatedLevel;
         levelEl.innerText = currentLevel;
-        speedMultiplier = 1.0 + (currentLevel - 1) * 0.12;
-        spawnChance = Math.min(0.035 + (currentLevel - 1) * 0.005, 0.07);
+        
+        // Sanfte und kontrollierte Steigerung
+        speedMultiplier = 0.75 + (currentLevel - 1) * 0.10;
+        spawnChance = Math.min(0.015 + (currentLevel - 1) * 0.006, 0.06);
+        maxObjectsOnScreen = 2 + Math.floor((currentLevel - 1) / 2);
     }
 }
 
 function handleSlash(inputX, inputY) {
     if (gameOver) {
-        // Klick auf den gezeichneten Reset-Button überprüfen
         if (inputX > buttonX - buttonW/2 && inputX < buttonX + buttonW/2 &&
             inputY > buttonY - buttonH/2 && inputY < buttonY + buttonH/2) {
             resetGame();
@@ -297,16 +274,14 @@ function handleSlash(inputX, inputY) {
 
                 if (obj.isBomb) {
                     gameOver = true;
-                    // Riesen-Funkenexplosion bei Bombe
-                    for (let i = 0; i < 60; i++) {
+                    for (let i = 0; i < 50; i++) {
                         particles.push(new MetalParticle(obj.x, obj.y));
                     }
                 } else {
                     score += 10;
                     scoreEl.innerText = score;
                     checkDifficulty();
-                    // Metallisches Funkeln beim Fruchtschnitt
-                    for (let i = 0; i < 25; i++) {
+                    for (let i = 0; i < 20; i++) {
                         particles.push(new MetalParticle(obj.x, obj.y));
                     }
                 }
@@ -319,8 +294,9 @@ function resetGame() {
     score = 0;
     lives = 3;
     currentLevel = 1;
-    speedMultiplier = 1.0;
-    spawnChance = 0.035;
+    speedMultiplier = 0.75;
+    spawnChance = 0.015;
+    maxObjectsOnScreen = 2;
     gameOver = false;
     objects = [];
     particles = [];
@@ -333,59 +309,33 @@ function resetGame() {
     gameLoop();
 }
 
-// Holen der präzisen Touch- und Maus-Koordinaten für jedes Display
 function getCoordinates(e) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    
-    let clientX, clientY;
-    if (e.touches && e.touches[0]) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-    } else {
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
-    
-    return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY
-    };
+    let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
 }
 
-// EVENT-STEUERUNG (iPad & PC)
 canvas.addEventListener('touchmove', (e) => {
     e.preventDefault();
     const coords = getCoordinates(e);
     handleSlash(coords.x, coords.y);
 }, { passive: false });
 
-canvas.addEventListener('touchstart', (e) => {
-    const coords = getCoordinates(e);
-    handleSlash(coords.x, coords.y);
-});
-
-canvas.addEventListener('mousemove', (e) => {
-    const coords = getCoordinates(e);
-    handleSlash(coords.x, coords.y);
-});
-
-canvas.addEventListener('mousedown', (e) => {
-    const coords = getCoordinates(e);
-    handleSlash(coords.x, coords.y);
-});
+canvas.addEventListener('touchstart', (e) => { e.preventDefault(); const coords = getCoordinates(e); handleSlash(coords.x, coords.y); });
+canvas.addEventListener('mousemove', (e) => { const coords = getCoordinates(e); handleSlash(coords.x, coords.y); });
+canvas.addEventListener('mousedown', (e) => { const coords = getCoordinates(e); handleSlash(coords.x, coords.y); });
 
 function gameLoop() {
-    // 1. Hintergrund zeichnen
     drawWoodBackground();
 
-    // Neue Früchte/Bomben spawnen
-    if (!gameOver && Math.random() < spawnChance) {
+    // Spawne nur, wenn die maximale Anzahl für dieses Level noch nicht erreicht ist
+    if (!gameOver && Math.random() < spawnChance && objects.length < maxObjectsOnScreen) {
         objects.push(new GameObject());
     }
 
-    // Objekte fliegen und drehen lassen
     for (let i = objects.length - 1; i >= 0; i--) {
         let obj = objects[i];
         obj.update();
@@ -393,19 +343,22 @@ function gameLoop() {
             obj.draw();
         }
 
-        // Wenn das Objekt nach unten durchfällt
-        if (obj.y > canvas.height + 80) {
-            // Nur verpasste Früchte kosten Leben, Bomben nicht!
+        // Wenn ein Objekt die Grenze verlässt
+        if (obj.y > canvas.height + 80 || obj.x < -80 || obj.x > canvas.width + 80) {
+            
+            // NEU: Ein Leben wird NUR abgezogen, wenn die Frucht nach unten fällt 
+            // UND sich dabei innerhalb des linken und rechten Rands befand!
             if (!obj.sliced && !obj.isBomb) {
-                lives--;
-                livesEl.innerText = lives;
-                if (lives <= 0) gameOver = true;
+                if (obj.y > canvas.height + 80 && obj.x >= 0 && obj.x <= canvas.width) {
+                    lives--;
+                    livesEl.innerText = lives;
+                    if (lives <= 0) gameOver = true;
+                }
             }
             objects.splice(i, 1);
         }
     }
 
-    // Metallische Partikel updaten und anzeigen
     for (let i = particles.length - 1; i >= 0; i--) {
         let p = particles[i];
         p.update();
@@ -413,7 +366,6 @@ function gameLoop() {
         if (p.alpha <= 0) particles.splice(i, 1);
     }
 
-    // Die glänzende Chrome-Klingenspur zeichnen
     for (let i = 1; i < slashTrail.length; i++) {
         ctx.save();
         ctx.beginPath();
@@ -421,23 +373,19 @@ function gameLoop() {
         gradient.addColorStop(0, `rgba(220, 220, 220, ${slashTrail[i].alpha})`);
         gradient.addColorStop(0.5, `rgba(255, 255, 255, ${slashTrail[i].alpha})`);
         gradient.addColorStop(1, `rgba(160, 160, 160, ${slashTrail[i].alpha})`);
-        
         ctx.strokeStyle = gradient;
-        ctx.lineWidth = 10; // Extra breiter, cooler Schnitt
+        ctx.lineWidth = 10; 
         ctx.lineCap = 'round';
         ctx.shadowBlur = 8;
         ctx.shadowColor = '#ffffff';
-        
         ctx.moveTo(slashTrail[i-1].x, slashTrail[i-1].y);
         ctx.lineTo(slashTrail[i].x, slashTrail[i].y);
         ctx.stroke();
         ctx.restore();
-        
         slashTrail[i].alpha -= 0.06;
     }
     slashTrail = slashTrail.filter(p => p.alpha > 0);
 
-    // GAME OVER Bildschirm
     if (gameOver) {
         ctx.fillStyle = 'rgba(0,0,0,0.85)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -447,23 +395,19 @@ function gameLoop() {
         ctx.textAlign = 'center';
         ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40);
 
-        // Edlen Reset-Button direkt auf das Canvas zeichnen
         ctx.save();
         ctx.shadowBlur = 12;
         ctx.shadowColor = 'rgba(0,0,0,0.6)';
-        
         let btnGradient = ctx.createLinearGradient(buttonX, buttonY - buttonH/2, buttonX, buttonY + buttonH/2);
         btnGradient.addColorStop(0, '#ff9800');
         btnGradient.addColorStop(1, '#e65100');
         ctx.fillStyle = btnGradient;
-        
         ctx.beginPath();
         ctx.roundRect(buttonX - buttonW/2, buttonY - buttonH/2, buttonW, buttonH, 30);
         ctx.fill();
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 3;
         ctx.stroke();
-        
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 22px Arial';
         ctx.textBaseline = 'middle';
@@ -474,7 +418,6 @@ function gameLoop() {
     }
 }
 
-// Start des Spiels
 gameLoop();
 </script>
 </body>
