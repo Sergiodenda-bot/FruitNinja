@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fruit Ninja - Highscore Edition</title>
+    <title>Fruit Ninja - Highscore Fixed</title>
     <style>
         body {
             margin: 0;
@@ -54,7 +54,7 @@
         }
         #levelBadge { color: #ffeb3b; }
         #score { color: #4caf50; }
-        #highscore { color: #00bcd4; } /* Schickes Cyan für den Highscore */
+        #highscore { color: #00bcd4; } 
         #lives { color: #f44336; }
         canvas {
             border: 4px solid #2d1a0e;
@@ -91,8 +91,17 @@ const levelEl = document.getElementById('levelBadge');
 let gameState = "menue"; 
 
 let score = 0;
-// Lade den Highscore aus dem Speicher des Browsers, falls vorhanden (sonst startet er bei 0)
-let highscore = localStorage.getItem("fn_highscore") ? parseInt(localStorage.getItem("fn_highscore")) : 0;
+let highscore = 0;
+
+// Highscore sicher laden (mit Fehler-Abfang)
+try {
+    const savedHighscore = localStorage.getItem("fn_highscore");
+    if (savedHighscore) {
+        highscore = parseInt(savedHighscore, 10);
+    }
+} catch (e) {
+    console.log("Speicherzugriff blockiert, nutze internen Variablen-Speicher.");
+}
 highscoreEl.innerText = highscore;
 
 let lives = 3;
@@ -326,11 +335,13 @@ function handleSlash(inputX, inputY) {
                     score += 10;
                     scoreEl.innerText = score;
                     
-                    // NEU: Wenn die aktuellen Punkte den Highscore schlagen, ziehe den Highscore sofort mit!
+                    // NEU & DIREKT: Highscore sofort im Moment des Treffers abgleichen
                     if (score > highscore) {
                         highscore = score;
                         highscoreEl.innerText = highscore;
-                        localStorage.setItem("fn_highscore", highscore); // Sicher im Browser merken
+                        try {
+                            localStorage.setItem("fn_highscore", highscore);
+                        } catch(e) {}
                     }
 
                     checkDifficulty();
@@ -356,6 +367,7 @@ function resetGame() {
     slashTrail = [];
     
     scoreEl.innerText = score;
+    highscoreEl.innerText = highscore; // Zeigt den alten Rekord direkt wieder an
     livesEl.innerText = lives;
     levelEl.innerText = currentLevel;
 }
@@ -382,7 +394,6 @@ canvas.addEventListener('mousedown', (e) => { const coords = getCoordinates(e); 
 function gameLoop() {
     drawWoodBackground();
 
-    // STARTMENÜ-MODUS
     if (gameState === "menue") {
         try {
             if (titleScreenImg.complete && titleScreenImg.naturalWidth !== 0) {
@@ -405,7 +416,6 @@ function gameLoop() {
         drawRedStartMenuButton();
     }
 
-    // SPIEL-MODUS
     if (gameState === "playing") {
         if (Math.random() < spawnChance && objects.length < maxObjectsOnScreen) {
             objects.push(new GameObject());
@@ -431,7 +441,6 @@ function gameLoop() {
         }
     }
 
-    // EFFEKTE
     for (let i = particles.length - 1; i >= 0; i--) {
         let p = particles[i];
         p.update();
@@ -459,7 +468,6 @@ function gameLoop() {
     }
     slashTrail = slashTrail.filter(p => p.alpha > 0);
 
-    // GAME OVER-MODUS
     if (gameState === "gameover") {
         ctx.fillStyle = 'rgba(0,0,0,0.85)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
