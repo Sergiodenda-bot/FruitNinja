@@ -1,9 +1,10 @@
+html:Fruit Ninja - Premium Edition:fruit_ninja.html
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fruit Ninja - Perfekte Edition</title>
+    <title>Fruit Ninja - Premium Edition</title>
     <style>
         body {
             margin: 0;
@@ -25,27 +26,49 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            width: 100%;
+            max-width: 800px;
+            padding: 10px;
+            box-sizing: border-box;
         }
         canvas {
             border: 4px solid #2d1a0e;
             box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border-radius: 12px;
             max-width: 100%;
-            max-height: 85vh;
+            height: auto;
+            aspect-ratio: 4 / 3;
             cursor: pointer;
+            touch-action: none;
         }
         #scoreBoard {
-            font-size: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            font-size: 20px;
             font-weight: bold;
-            margin-bottom: 10px;
+            margin-bottom: 12px;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
-            background: rgba(0,0,0,0.7);
-            padding: 10px 25px;
-            border-radius: 25px;
+            background: rgba(0,0,0,0.75);
+            padding: 12px 20px;
+            border-radius: 20px;
             border: 1px solid #444;
+            box-sizing: border-box;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         #levelBadge {
             color: #ffeb3b;
-            margin-left: 15px;
+        }
+        #score {
+            color: #4caf50;
+        }
+        #lives {
+            color: #f44336;
         }
     </style>
 </head>
@@ -53,9 +76,9 @@
 
     <div id="gameWrapper">
         <div id="scoreBoard">
-            ⚔️ Punkte: <span id="score">0</span> | 
-            ❤️ Leben: <span id="lives">3</span> | 
-            ⚡ Level: <span id="levelBadge">1</span>
+            <div class="stat-item">⚔️ Punkte: <span id="score">0</span></div>
+            <div class="stat-item">❤️ Leben: <span id="lives">3</span></div>
+            <div class="stat-item">⚡ Level: <span id="levelBadge">1</span></div>
         </div>
         <canvas id="gameCanvas" width="800" height="600"></canvas>
     </div>
@@ -78,10 +101,11 @@ let currentLevel = 1;
 let speedMultiplier = 1.0; 
 let spawnChance = 0.035; 
 
+// Koordinaten für den virtuellen "Erneut spielen"-Button auf dem Canvas
 const buttonX = 400;
 const buttonY = 380;
-const buttonW = 220;
-const buttonH = 55;
+const buttonW = 240;
+const buttonH = 60;
 
 const fruitTypes = [
     { emoji: '🍉', size: 90 },
@@ -92,13 +116,13 @@ const fruitTypes = [
     { emoji: '💣', size: 80 }
 ];
 
-// FUNKTION DIE DEIN YIN-YANG WUNSCHBILD AUTOMATISCH ZEICHNET
+// Zeichnet den originalen Yin-Yang Holzhintergrund direkt per Code
 function drawWoodBackground() {
-    // 1. Basis-Holzfarbe flächig zeichnen
+    // 1. Warme Holzfarbe als Basis
     ctx.fillStyle = '#5c3a21';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Holzmaserung-Streifen simulieren
+    // Feine Holzmaserung zeichnen
     ctx.fillStyle = '#4a2e1a';
     for(let i = 0; i < canvas.width; i += 40) {
         if(Math.sin(i) > 0) {
@@ -106,16 +130,16 @@ function drawWoodBackground() {
         }
     }
 
-    // 2. Großer runder Rahmen für das Yin-Yang Symbol in der Mitte
+    // 2. Großes Yin-Yang-Symbol in der Mitte
     let centerX = canvas.width / 2;
     let centerY = canvas.height / 2;
     let r = 160;
 
     ctx.save();
-    // Dunklerer Kreis für die Vertiefung des Symbols
+    // Dunkle Rille für plastischen Effekt
     ctx.beginPath();
     ctx.arc(centerX, centerY, r + 4, 0, Math.PI * 2);
-    ctx.fillStyle = '#3d2514';
+    ctx.fillStyle = '#321b0f';
     ctx.fill();
 
     // Rechter Halbkreis (Dunkles Holz)
@@ -130,44 +154,50 @@ function drawWoodBackground() {
     ctx.fillStyle = '#734929';
     ctx.fill();
 
-    // Unterer kleiner Bogen (Dunkel)
+    // Unterer Bogen (Dunkel)
     ctx.beginPath();
     ctx.arc(centerX, centerY + r/2, r/2, 0, Math.PI * 2);
     ctx.fillStyle = '#442816';
     ctx.fill();
 
-    // Oberer kleiner Bogen (Hell)
+    // Oberer Bogen (Hell)
     ctx.beginPath();
     ctx.arc(centerX, centerY - r/2, r/2, 0, Math.PI * 2);
     ctx.fillStyle = '#734929';
     ctx.fill();
 
-    // Kleiner heller Punkt unten
+    // Heller Punkt im dunklen Bogen
     ctx.beginPath();
-    ctx.arc(centerX, centerY + r/2, 25, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY + r/2, 22, 0, Math.PI * 2);
     ctx.fillStyle = '#734929';
     ctx.fill();
 
-    // Kleiner dunkler Punkt oben
+    // Dunkler Punkt im hellen Bogen
     ctx.beginPath();
-    ctx.arc(centerX, centerY - r/2, 25, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY - r/2, 22, 0, Math.PI * 2);
     ctx.fillStyle = '#442816';
     ctx.fill();
 
-    // Äußerer dekorativer Achteck-Holzrahmen (wie auf deinem Foto!)
+    // Äußerer oktogonaler Rahmen (Klassischer Look!)
     ctx.restore();
-    ctx.strokeStyle = '#3d2514';
-    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#321b0f';
+    ctx.lineWidth = 8;
     ctx.beginPath();
-    ctx.moveTo(80, 50); ctx.lineTo(720, 50); ctx.lineTo(750, 120); ctx.lineTo(750, 480);
-    ctx.lineTo(720, 550); ctx.lineTo(80, 550); ctx.lineTo(50, 480); ctx.lineTo(50, 120);
+    ctx.moveTo(80, 50); 
+    ctx.lineTo(720, 50); 
+    ctx.lineTo(750, 120); 
+    ctx.lineTo(750, 480);
+    ctx.lineTo(720, 550); 
+    ctx.lineTo(80, 550); 
+    ctx.lineTo(50, 480); 
+    ctx.lineTo(50, 120);
     ctx.closePath();
     ctx.stroke();
 }
 
 class GameObject {
     constructor() {
-        this.x = Math.random() * (canvas.width - 200) + 100;
+        this.x = Math.random() * (canvas.width - 240) + 120;
         this.y = canvas.height + 70;
         
         const target = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
@@ -175,8 +205,9 @@ class GameObject {
         this.radius = target.size / 2;
         this.isBomb = (this.emoji === '💣');
 
-        this.speedX = (Math.random() - 0.5) * 5 * (1 + (speedMultiplier - 1) * 0.3);
-        this.speedY = -(Math.random() * 3 + 15) * speedMultiplier; 
+        // Seitengeschwindigkeit und Flughöhe an Level anpassen
+        this.speedX = (Math.random() - 0.5) * 5 * (1 + (speedMultiplier - 1) * 0.25);
+        this.speedY = -(Math.random() * 3 + 15) * Math.sqrt(speedMultiplier); 
         this.gravity = 0.22 * speedMultiplier; 
         
         this.sliced = false;
@@ -203,28 +234,30 @@ class GameObject {
     }
 }
 
+// Edle, metallisch glänzende Partikel (Chrom-Effekt)
 class MetalParticle {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.radius = Math.random() * 5 + 3;
-        this.speedX = (Math.random() - 0.5) * 14;
-        this.speedY = (Math.random() - 0.5) * 14;
+        this.radius = Math.random() * 6 + 3;
+        this.speedX = (Math.random() - 0.5) * 16;
+        this.speedY = (Math.random() - 0.5) * 16;
         this.alpha = 1;
+        // Funkelnder Silber/Weiß Verlauf-Look
         this.color = Math.random() > 0.4 ? '#e8e8e8' : '#ffffff';
     }
 
     update() {
         this.x += this.speedX;
         this.y += this.speedY;
-        this.alpha -= 0.025;
+        this.alpha -= 0.028;
     }
 
     draw() {
         ctx.save();
         ctx.globalAlpha = this.alpha;
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = '#fff';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#ffffff';
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
@@ -234,6 +267,7 @@ class MetalParticle {
 }
 
 function checkDifficulty() {
+    // Level erhöht sich alle 100 Punkte
     let calculatedLevel = Math.floor(score / 100) + 1;
     if (calculatedLevel !== currentLevel) {
         currentLevel = calculatedLevel;
@@ -245,6 +279,7 @@ function checkDifficulty() {
 
 function handleSlash(inputX, inputY) {
     if (gameOver) {
+        // Klick auf den gezeichneten Reset-Button überprüfen
         if (inputX > buttonX - buttonW/2 && inputX < buttonX + buttonW/2 &&
             inputY > buttonY - buttonH/2 && inputY < buttonY + buttonH/2) {
             resetGame();
@@ -257,15 +292,20 @@ function handleSlash(inputX, inputY) {
     objects.forEach((obj) => {
         if (!obj.sliced) {
             let dist = Math.hypot(obj.x - inputX, obj.y - inputY);
-            if (dist < obj.radius + 20) { 
+            if (dist < obj.radius + 25) { 
                 obj.sliced = true;
 
                 if (obj.isBomb) {
                     gameOver = true;
+                    // Riesen-Funkenexplosion bei Bombe
+                    for (let i = 0; i < 60; i++) {
+                        particles.push(new MetalParticle(obj.x, obj.y));
+                    }
                 } else {
                     score += 10;
                     scoreEl.innerText = score;
                     checkDifficulty();
+                    // Metallisches Funkeln beim Fruchtschnitt
                     for (let i = 0; i < 25; i++) {
                         particles.push(new MetalParticle(obj.x, obj.y));
                     }
@@ -293,47 +333,59 @@ function resetGame() {
     gameLoop();
 }
 
-// IPAD-TOUCH-STEUERUNG
-canvas.addEventListener('touchmove', (e) => {
-    e.preventDefault();
+// Holen der präzisen Touch- und Maus-Koordinaten für jedes Display
+function getCoordinates(e) {
     const rect = canvas.getBoundingClientRect();
-    const touch = e.touches[0];
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    handleSlash((touch.clientX - rect.left) * scaleX, (touch.clientY - rect.top) * scaleY);
+    
+    let clientX, clientY;
+    if (e.touches && e.touches[0]) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+    
+    return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+    };
+}
+
+// EVENT-STEUERUNG (iPad & PC)
+canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const coords = getCoordinates(e);
+    handleSlash(coords.x, coords.y);
 }, { passive: false });
 
 canvas.addEventListener('touchstart', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const touch = e.touches[0];
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    handleSlash((touch.clientX - rect.left) * scaleX, (touch.clientY - rect.top) * scaleY);
+    const coords = getCoordinates(e);
+    handleSlash(coords.x, coords.y);
 });
 
-// MAUS-STEUERUNG
 canvas.addEventListener('mousemove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    handleSlash((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+    const coords = getCoordinates(e);
+    handleSlash(coords.x, coords.y);
 });
 
 canvas.addEventListener('mousedown', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    handleSlash((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+    const coords = getCoordinates(e);
+    handleSlash(coords.x, coords.y);
 });
 
 function gameLoop() {
-    // Hintergrund zeichnen
+    // 1. Hintergrund zeichnen
     drawWoodBackground();
 
+    // Neue Früchte/Bomben spawnen
     if (!gameOver && Math.random() < spawnChance) {
         objects.push(new GameObject());
     }
 
+    // Objekte fliegen und drehen lassen
     for (let i = objects.length - 1; i >= 0; i--) {
         let obj = objects[i];
         obj.update();
@@ -341,7 +393,9 @@ function gameLoop() {
             obj.draw();
         }
 
+        // Wenn das Objekt nach unten durchfällt
         if (obj.y > canvas.height + 80) {
+            // Nur verpasste Früchte kosten Leben, Bomben nicht!
             if (!obj.sliced && !obj.isBomb) {
                 lives--;
                 livesEl.innerText = lives;
@@ -351,6 +405,7 @@ function gameLoop() {
         }
     }
 
+    // Metallische Partikel updaten und anzeigen
     for (let i = particles.length - 1; i >= 0; i--) {
         let p = particles[i];
         p.update();
@@ -358,7 +413,7 @@ function gameLoop() {
         if (p.alpha <= 0) particles.splice(i, 1);
     }
 
-    // Klingen-Spur (Metall-Effekt)
+    // Die glänzende Chrome-Klingenspur zeichnen
     for (let i = 1; i < slashTrail.length; i++) {
         ctx.save();
         ctx.beginPath();
@@ -368,10 +423,10 @@ function gameLoop() {
         gradient.addColorStop(1, `rgba(160, 160, 160, ${slashTrail[i].alpha})`);
         
         ctx.strokeStyle = gradient;
-        ctx.lineWidth = 8; 
+        ctx.lineWidth = 10; // Extra breiter, cooler Schnitt
         ctx.lineCap = 'round';
-        ctx.shadowBlur = 6;
-        ctx.shadowColor = '#fff';
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#ffffff';
         
         ctx.moveTo(slashTrail[i-1].x, slashTrail[i-1].y);
         ctx.lineTo(slashTrail[i].x, slashTrail[i].y);
@@ -382,19 +437,20 @@ function gameLoop() {
     }
     slashTrail = slashTrail.filter(p => p.alpha > 0);
 
+    // GAME OVER Bildschirm
     if (gameOver) {
         ctx.fillStyle = 'rgba(0,0,0,0.85)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
         ctx.fillStyle = '#ff3333';
-        ctx.font = 'bold 60px Arial';
+        ctx.font = 'bold 65px Arial';
         ctx.textAlign = 'center';
         ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40);
 
-        // RESET-KNOPF
+        // Edlen Reset-Button direkt auf das Canvas zeichnen
         ctx.save();
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
         
         let btnGradient = ctx.createLinearGradient(buttonX, buttonY - buttonH/2, buttonX, buttonY + buttonH/2);
         btnGradient.addColorStop(0, '#ff9800');
@@ -402,14 +458,14 @@ function gameLoop() {
         ctx.fillStyle = btnGradient;
         
         ctx.beginPath();
-        ctx.roundRect(buttonX - buttonW/2, buttonY - buttonH/2, buttonW, buttonH, 25);
+        ctx.roundRect(buttonX - buttonW/2, buttonY - buttonH/2, buttonW, buttonH, 30);
         ctx.fill();
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 3;
         ctx.stroke();
         
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 20px Arial';
+        ctx.font = 'bold 22px Arial';
         ctx.textBaseline = 'middle';
         ctx.fillText('Erneut spielen 🔄', buttonX, buttonY);
         ctx.restore();
@@ -418,7 +474,10 @@ function gameLoop() {
     }
 }
 
+// Start des Spiels
 gameLoop();
 </script>
 </body>
 </html>
+``` eof
+
