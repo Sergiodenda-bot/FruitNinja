@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fruit Ninja - Red Edition</title>
+    <title>Fruit Ninja - Highscore Edition</title>
     <style>
         body {
             margin: 0;
@@ -30,6 +30,32 @@
             padding: 10px;
             box-sizing: border-box;
         }
+        #scoreBoard {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.75);
+            padding: 12px 20px;
+            border-radius: 20px;
+            border: 1px solid #444;
+            box-sizing: border-box;
+            gap: 10px;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+        #levelBadge { color: #ffeb3b; }
+        #score { color: #4caf50; }
+        #highscore { color: #00bcd4; } /* Schickes Cyan für den Highscore */
+        #lives { color: #f44336; }
         canvas {
             border: 4px solid #2d1a0e;
             box-shadow: 0 10px 30px rgba(0,0,0,0.8);
@@ -40,29 +66,6 @@
             cursor: pointer;
             touch-action: none;
         }
-        #scoreBoard {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 12px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
-            background: rgba(0,0,0,0.75);
-            padding: 12px 20px;
-            border-radius: 20px;
-            border: 1px solid #444;
-            box-sizing: border-box;
-        }
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        #levelBadge { color: #ffeb3b; }
-        #score { color: #4caf50; }
-        #lives { color: #f44336; }
     </style>
 </head>
 <body>
@@ -70,6 +73,7 @@
     <div id="gameWrapper">
         <div id="scoreBoard">
             <div class="stat-item">⚔️ Punkte: <span id="score">0</span></div>
+            <div class="stat-item">🏆 Highscore: <span id="highscore">0</span></div>
             <div class="stat-item">❤️ Leben: <span id="lives">3</span></div>
             <div class="stat-item">⚡ Level: <span id="levelBadge">1</span></div>
         </div>
@@ -80,12 +84,17 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreEl = document.getElementById('score');
+const highscoreEl = document.getElementById('highscore');
 const livesEl = document.getElementById('lives');
 const levelEl = document.getElementById('levelBadge');
 
 let gameState = "menue"; 
 
 let score = 0;
+// Lade den Highscore aus dem Speicher des Browsers, falls vorhanden (sonst startet er bei 0)
+let highscore = localStorage.getItem("fn_highscore") ? parseInt(localStorage.getItem("fn_highscore")) : 0;
+highscoreEl.innerText = highscore;
+
 let lives = 3;
 let objects = [];
 let particles = [];
@@ -102,11 +111,11 @@ const buttonY = 380;
 const buttonW = 240;
 const buttonH = 60;
 
-// Das Fruit Ninja Logo-Bild von dir
+// Dein Fruit Ninja Logo-Bild
 const titleScreenImg = new Image();
 titleScreenImg.src = 'https://raw.githubusercontent.com/AnonymmousFiles/images/main/IMG_1768.jpeg';
 
-// NEU: Abmessungen für den sanft roten START-Textrahmen
+// START-Schriftzug im Rahmen
 const startBtnW = 280;
 const startBtnH = 90;
 const startBtnX = 400 - startBtnW / 2;
@@ -182,31 +191,24 @@ function drawWoodBackground() {
     ctx.stroke();
 }
 
-// NEU: Zeichnet den großen START-Schriftzug mit sanftem rotem Rahmen
 function drawRedStartMenuButton() {
     ctx.save();
-    
-    // Sanftes, helles Pastell-Rot (#ff6b6b)
     const softRed = '#ff6b6b';
     
-    // 1. Den Rahmen zeichnen (Etwas dicker und abgerundet)
     ctx.strokeStyle = softRed;
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.roundRect(startBtnX, startBtnY, startBtnW, startBtnH, 15);
     ctx.stroke();
     
-    // Ein ganz leichter, transparenter roter Hintergrund-Schimmer für edlen Look
     ctx.fillStyle = 'rgba(255, 107, 107, 0.15)';
     ctx.fill();
     
-    // 2. Große, fette START-Schrift zeichnen
     ctx.fillStyle = softRed;
     ctx.font = 'bold 42px "Arial Black", Gadget, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('START', 400, startBtnY + startBtnH / 2 + 2);
-    
     ctx.restore();
 }
 
@@ -292,7 +294,6 @@ function checkDifficulty() {
 
 function handleSlash(inputX, inputY) {
     if (gameState === "menue") {
-        // Überprüft ob genau in den roten START-Rahmen geklickt/getippt wurde
         if (inputX > startBtnX && inputX < startBtnX + startBtnW &&
             inputY > startBtnY && inputY < startBtnY + startBtnH) {
             gameState = "playing";
@@ -324,6 +325,14 @@ function handleSlash(inputX, inputY) {
                 } else {
                     score += 10;
                     scoreEl.innerText = score;
+                    
+                    // NEU: Wenn die aktuellen Punkte den Highscore schlagen, ziehe den Highscore sofort mit!
+                    if (score > highscore) {
+                        highscore = score;
+                        highscoreEl.innerText = highscore;
+                        localStorage.setItem("fn_highscore", highscore); // Sicher im Browser merken
+                    }
+
                     checkDifficulty();
                     for (let i = 0; i < 20; i++) {
                         particles.push(new MetalParticle(obj.x, obj.y));
@@ -393,7 +402,6 @@ function gameLoop() {
             ctx.fillText('FRUIT NINJA', 400, 220);
         }
 
-        // NEU: Hier wird der sanft rote Text & Rahmen gezeichnet
         drawRedStartMenuButton();
     }
 
