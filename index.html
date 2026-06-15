@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fruit Ninja - Fixed Edition</title>
+    <title>Fruit Ninja - Red Edition</title>
     <style>
         body {
             margin: 0;
@@ -96,21 +96,21 @@ let speedMultiplier = 0.75;
 let spawnChance = 0.015;     
 let maxObjectsOnScreen = 2;  
 
-// "Play again" Button-Größe im Game-Over-Bildschirm
+// Game-Over "Play again" Button
 const buttonX = 400;
 const buttonY = 380;
 const buttonW = 240;
 const buttonH = 60;
 
-// Dein Fruit Ninja Bild IMG_1768.jpeg laden
+// Das Fruit Ninja Logo-Bild von dir
 const titleScreenImg = new Image();
 titleScreenImg.src = 'https://raw.githubusercontent.com/AnonymmousFiles/images/main/IMG_1768.jpeg';
 
-// Feste, sichere Koordinaten für den Start-Knopf im Menü
-const startBtnW = 240;
-const startBtnH = 70;
+// NEU: Abmessungen für den sanft roten START-Textrahmen
+const startBtnW = 280;
+const startBtnH = 90;
 const startBtnX = 400 - startBtnW / 2;
-const startBtnY = 470 - startBtnH / 2;
+const startBtnY = 460 - startBtnH / 2;
 
 const fruitTypes = [
     { emoji: '🍉', size: 90 },
@@ -182,36 +182,31 @@ function drawWoodBackground() {
     ctx.stroke();
 }
 
-// Funktion um den coolen orangefarbenen Startknopf nativ im Code zu zeichnen
-function drawCustomStartButton() {
+// NEU: Zeichnet den großen START-Schriftzug mit sanftem rotem Rahmen
+function drawRedStartMenuButton() {
     ctx.save();
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = 'rgba(230, 81, 0, 0.6)';
     
-    // Farbverlauf für das stylische Orange
-    let btnGradient = ctx.createLinearGradient(400, startBtnY, 400, startBtnY + startBtnH);
-    btnGradient.addColorStop(0, '#ffb300'); // Helles Orange-Gelb oben
-    btnGradient.addColorStop(0.5, '#ff9800'); // Volles Orange in der Mitte
-    btnGradient.addColorStop(1, '#e65100'); // Dunkles Orange unten
+    // Sanftes, helles Pastell-Rot (#ff6b6b)
+    const softRed = '#ff6b6b';
     
-    ctx.fillStyle = btnGradient;
+    // 1. Den Rahmen zeichnen (Etwas dicker und abgerundet)
+    ctx.strokeStyle = softRed;
+    ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.roundRect(startBtnX, startBtnY, startBtnW, startBtnH, 35);
-    ctx.fill();
-    
-    // Weißer, edler Innenrahmen
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-    ctx.lineWidth = 2;
+    ctx.roundRect(startBtnX, startBtnY, startBtnW, startBtnH, 15);
     ctx.stroke();
     
-    // Text auf dem Button
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 28px Arial';
+    // Ein ganz leichter, transparenter roter Hintergrund-Schimmer für edlen Look
+    ctx.fillStyle = 'rgba(255, 107, 107, 0.15)';
+    ctx.fill();
+    
+    // 2. Große, fette START-Schrift zeichnen
+    ctx.fillStyle = softRed;
+    ctx.font = 'bold 42px "Arial Black", Gadget, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowBlur = 4;
-    ctx.shadowColor = 'rgba(0,0,0,0.4)';
     ctx.fillText('START', 400, startBtnY + startBtnH / 2 + 2);
+    
     ctx.restore();
 }
 
@@ -297,7 +292,7 @@ function checkDifficulty() {
 
 function handleSlash(inputX, inputY) {
     if (gameState === "menue") {
-        // Exakter Klickbereich für den START-Button
+        // Überprüft ob genau in den roten START-Rahmen geklickt/getippt wurde
         if (inputX > startBtnX && inputX < startBtnX + startBtnW &&
             inputY > startBtnY && inputY < startBtnY + startBtnH) {
             gameState = "playing";
@@ -380,12 +375,10 @@ function gameLoop() {
 
     // STARTMENÜ-MODUS
     if (gameState === "menue") {
-        // Versuche das IMG_1768.jpeg Bild anzuzeigen
         try {
             if (titleScreenImg.complete && titleScreenImg.naturalWidth !== 0) {
                 ctx.drawImage(titleScreenImg, 50, 40, 700, 360);
             } else {
-                // Fallback falls der Server blockiert
                 ctx.fillStyle = 'rgba(0,0,0,0.3)';
                 ctx.fillRect(50, 40, 700, 360);
                 ctx.fillStyle = '#ffffff';
@@ -394,15 +387,14 @@ function gameLoop() {
                 ctx.fillText('FRUIT NINJA', 400, 220);
             }
         } catch(e) {
-            // Absicherung gegen Security-Errors
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 60px Arial';
             ctx.textAlign = 'center';
             ctx.fillText('FRUIT NINJA', 400, 220);
         }
 
-        // Der 100% sichere Start-Knopf, der mit Code gezeichnet wird
-        drawCustomStartButton();
+        // NEU: Hier wird der sanft rote Text & Rahmen gezeichnet
+        drawRedStartMenuButton();
     }
 
     // SPIEL-MODUS
@@ -431,7 +423,7 @@ function gameLoop() {
         }
     }
 
-    // EFFEKTE (Partikel & Klinge)
+    // EFFEKTE
     for (let i = particles.length - 1; i >= 0; i--) {
         let p = particles[i];
         p.update();
@@ -469,7 +461,6 @@ function gameLoop() {
         ctx.textAlign = 'center';
         ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40);
 
-        // "Play again" Knopf
         ctx.save();
         ctx.shadowBlur = 12;
         ctx.shadowColor = 'rgba(0,0,0,0.6)';
