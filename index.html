@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fruit Ninja - Highscore Fixed</title>
+    <title>Fruit Ninja - English Edition</title>
     <style>
         body {
             margin: 0;
@@ -72,9 +72,9 @@
 
     <div id="gameWrapper">
         <div id="scoreBoard">
-            <div class="stat-item">⚔️ Punkte: <span id="score">0</span></div>
+            <div class="stat-item">⚔️ Points: <span id="score">0</span></div>
             <div class="stat-item">🏆 Highscore: <span id="highscore">0</span></div>
-            <div class="stat-item">❤️ Leben: <span id="lives">3</span></div>
+            <div class="stat-item">❤️ Lives: <span id="lives">3</span></div>
             <div class="stat-item">⚡ Level: <span id="levelBadge">1</span></div>
         </div>
         <canvas id="gameCanvas" width="800" height="600"></canvas>
@@ -93,15 +93,12 @@ let gameState = "menue";
 let score = 0;
 let highscore = 0;
 
-// Highscore sicher laden (mit Fehler-Abfang)
 try {
     const savedHighscore = localStorage.getItem("fn_highscore");
     if (savedHighscore) {
         highscore = parseInt(savedHighscore, 10);
     }
-} catch (e) {
-    console.log("Speicherzugriff blockiert, nutze internen Variablen-Speicher.");
-}
+} catch (e) {}
 highscoreEl.innerText = highscore;
 
 let lives = 3;
@@ -114,17 +111,14 @@ let speedMultiplier = 0.75;
 let spawnChance = 0.015;     
 let maxObjectsOnScreen = 2;  
 
-// Game-Over "Play again" Button
 const buttonX = 400;
 const buttonY = 380;
 const buttonW = 240;
 const buttonH = 60;
 
-// Dein Fruit Ninja Logo-Bild
 const titleScreenImg = new Image();
 titleScreenImg.src = 'https://raw.githubusercontent.com/AnonymmousFiles/images/main/IMG_1768.jpeg';
 
-// START-Schriftzug im Rahmen
 const startBtnW = 280;
 const startBtnH = 90;
 const startBtnX = 400 - startBtnW / 2;
@@ -335,7 +329,6 @@ function handleSlash(inputX, inputY) {
                     score += 10;
                     scoreEl.innerText = score;
                     
-                    // NEU & DIREKT: Highscore sofort im Moment des Treffers abgleichen
                     if (score > highscore) {
                         highscore = score;
                         highscoreEl.innerText = highscore;
@@ -367,7 +360,7 @@ function resetGame() {
     slashTrail = [];
     
     scoreEl.innerText = score;
-    highscoreEl.innerText = highscore; // Zeigt den alten Rekord direkt wieder an
+    highscoreEl.innerText = highscore; 
     livesEl.innerText = lives;
     levelEl.innerText = currentLevel;
 }
