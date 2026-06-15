@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Fruit Ninja - Balanced Edition</title>
+    <title>Fruit Ninja - Start Menu Edition</title>
     <style>
         body {
             margin: 0;
@@ -83,6 +83,9 @@ const scoreEl = document.getElementById('score');
 const livesEl = document.getElementById('lives');
 const levelEl = document.getElementById('levelBadge');
 
+// NEU: Spielzustände (menue, playing, gameover)
+let gameState = "menue"; 
+
 let score = 0;
 let lives = 3;
 let gameOver = false;
@@ -91,14 +94,25 @@ let particles = [];
 let slashTrail = [];
 
 let currentLevel = 1;
-let speedMultiplier = 0.75; // Deutlich langsamerer Start!
-let spawnChance = 0.015;     // Sehr ruhiger Start, Früchte kommen einzeln
-let maxObjectsOnScreen = 2;  // Am Anfang maximal 2 Objekte gleichzeitig
+let speedMultiplier = 0.75; 
+let spawnChance = 0.015;     
+let maxObjectsOnScreen = 2;  
 
+// Koordinaten für den "Play again"-Button
 const buttonX = 400;
 const buttonY = 380;
 const buttonW = 240;
 const buttonH = 60;
+
+// Bild für den originalen "Start"-Knopf laden
+const startButtonImg = new Image();
+startButtonImg.src = 'https://www.freeiconspng.com/uploads/orange-start-button-png-0.png';
+
+// Koordinaten für den Start-Knopf im Menü
+const startBtnW = 260;
+const startBtnH = 100;
+const startBtnX = 400 - startBtnW / 2;
+const startBtnY = 320 - startBtnH / 2;
 
 const fruitTypes = [
     { emoji: '🍉', size: 90 },
@@ -172,7 +186,6 @@ function drawWoodBackground() {
 
 class GameObject {
     constructor() {
-        // Früchte starten zentrierter, damit sie weniger zur Seite fliegen
         this.x = Math.random() * (canvas.width - 360) + 180;
         this.y = canvas.height + 70;
         
@@ -181,9 +194,7 @@ class GameObject {
         this.radius = target.size / 2;
         this.isBomb = (this.emoji === '💣');
 
-        // Weniger Drang nach links/rechts zu fliegen
         this.speedX = (Math.random() - 0.5) * 3.5 * speedMultiplier;
-        // Sanfterer Bogen nach oben am Anfang
         this.speedY = -(Math.random() * 3 + 13.5) * Math.sqrt(speedMultiplier); 
         this.gravity = 0.20 * speedMultiplier; 
         
@@ -242,12 +253,11 @@ class MetalParticle {
 }
 
 function checkDifficulty() {
-    let calculatedLevel = Math.floor(score / 80) + 1; // Level steigt alle 80 Punkte
+    let calculatedLevel = Math.floor(score / 80) + 1; 
     if (calculatedLevel !== currentLevel) {
         currentLevel = calculatedLevel;
         levelEl.innerText = currentLevel;
         
-        // Sanfte und kontrollierte Steigerung
         speedMultiplier = 0.75 + (currentLevel - 1) * 0.10;
         spawnChance = Math.min(0.015 + (currentLevel - 1) * 0.006, 0.06);
         maxObjectsOnScreen = 2 + Math.floor((currentLevel - 1) / 2);
@@ -255,7 +265,17 @@ function checkDifficulty() {
 }
 
 function handleSlash(inputX, inputY) {
-    if (gameOver) {
+    // Wenn wir im Startmenü sind
+    if (gameState === "menue") {
+        if (inputX > startBtnX && inputX < startBtnX + startBtnW &&
+            inputY > startBtnY && inputY < startBtnY + startBtnH) {
+            gameState = "playing";
+        }
+        return;
+    }
+
+    // Wenn wir im Game Over sind
+    if (gameState === "gameover") {
         if (inputX > buttonX - buttonW/2 && inputX < buttonX + buttonW/2 &&
             inputY > buttonY - buttonH/2 && inputY < buttonY + buttonH/2) {
             resetGame();
@@ -272,7 +292,7 @@ function handleSlash(inputX, inputY) {
                 obj.sliced = true;
 
                 if (obj.isBomb) {
-                    gameOver = true;
+                    gameState = "gameover";
                     for (let i = 0; i < 50; i++) {
                         particles.push(new MetalParticle(obj.x, obj.y));
                     }
@@ -296,7 +316,7 @@ function resetGame() {
     speedMultiplier = 0.75;
     spawnChance = 0.015;
     maxObjectsOnScreen = 2;
-    gameOver = false;
+    gameState = "playing";
     objects = [];
     particles = [];
     slashTrail = [];
@@ -304,8 +324,6 @@ function resetGame() {
     scoreEl.innerText = score;
     livesEl.innerText = lives;
     levelEl.innerText = currentLevel;
-    
-    gameLoop();
 }
 
 function getCoordinates(e) {
@@ -330,34 +348,53 @@ canvas.addEventListener('mousedown', (e) => { const coords = getCoordinates(e); 
 function gameLoop() {
     drawWoodBackground();
 
-    // Spawne nur, wenn die maximale Anzahl für dieses Level noch nicht erreicht ist
-    if (!gameOver && Math.random() < spawnChance && objects.length < maxObjectsOnScreen) {
-        objects.push(new GameObject());
+    // MENÜ-ZUSTAND
+    if (gameState === "menue") {
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 50px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('FRUIT NINJA', canvas.width / 2, canvas.height / 2 - 80);
+
+        // Den gewünschten Start-Knopf zeichnen
+        if (startButtonImg.complete) {
+            ctx.drawImage(startButtonImg, startBtnX, startBtnY, startBtnW, startBtnH);
+        } else {
+            // Fallback falls Bild lädt
+            ctx.fillStyle = '#ff9800';
+            ctx.fillRect(startBtnX, startBtnY, startBtnW, startBtnH);
+        }
     }
 
-    for (let i = objects.length - 1; i >= 0; i--) {
-        let obj = objects[i];
-        obj.update();
-        if (!obj.sliced) {
-            obj.draw();
+    // SPIEL-ZUSTAND
+    if (gameState === "playing") {
+        if (Math.random() < spawnChance && objects.length < maxObjectsOnScreen) {
+            objects.push(new GameObject());
         }
 
-        // Wenn ein Objekt die Grenze verlässt
-        if (obj.y > canvas.height + 80 || obj.x < -80 || obj.x > canvas.width + 80) {
-            
-            // NEU: Ein Leben wird NUR abgezogen, wenn die Frucht nach unten fällt 
-            // UND sich dabei innerhalb des linken und rechten Rands befand!
-            if (!obj.sliced && !obj.isBomb) {
-                if (obj.y > canvas.height + 80 && obj.x >= 0 && obj.x <= canvas.width) {
-                    lives--;
-                    livesEl.innerText = lives;
-                    if (lives <= 0) gameOver = true;
-                }
+        for (let i = objects.length - 1; i >= 0; i--) {
+            let obj = objects[i];
+            obj.update();
+            if (!obj.sliced) {
+                obj.draw();
             }
-            objects.splice(i, 1);
+
+            if (obj.y > canvas.height + 80 || obj.x < -80 || obj.x > canvas.width + 80) {
+                if (!obj.sliced && !obj.isBomb) {
+                    if (obj.y > canvas.height + 80 && obj.x >= 0 && obj.x <= canvas.width) {
+                        lives--;
+                        livesEl.innerText = lives;
+                        if (lives <= 0) gameState = "gameover";
+                    }
+                }
+                objects.splice(i, 1);
+            }
         }
     }
 
+    // PARTIKEL & KLINGENSPUR (Immer zeichnen)
     for (let i = particles.length - 1; i >= 0; i--) {
         let p = particles[i];
         p.update();
@@ -385,7 +422,8 @@ function gameLoop() {
     }
     slashTrail = slashTrail.filter(p => p.alpha > 0);
 
-    if (gameOver) {
+    // GAME OVER ZUSTAND
+    if (gameState === "gameover") {
         ctx.fillStyle = 'rgba(0,0,0,0.85)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
@@ -394,6 +432,7 @@ function gameLoop() {
         ctx.textAlign = 'center';
         ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40);
 
+        // "Play again" Knopf zeichnen
         ctx.save();
         ctx.shadowBlur = 12;
         ctx.shadowColor = 'rgba(0,0,0,0.6)';
@@ -410,15 +449,15 @@ function gameLoop() {
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 22px Arial';
         ctx.textBaseline = 'middle';
-        ctx.fillText('Erneut spielen 🔄', buttonX, buttonY);
+        ctx.fillText('Play again 🔄', buttonX, buttonY);
         ctx.restore();
-    } else {
-        requestAnimationFrame(gameLoop);
     }
+
+    requestAnimationFrame(gameLoop);
 }
 
+// Start des Loops
 gameLoop();
 </script>
 </body>
 </html>
-
